@@ -61,3 +61,35 @@ class TumorDataset(Dataset):
         data = (self.transform(img), label_id)
 
         return data
+    
+
+def load_data(
+    dataset_path: str,
+    transform_pipeline: str = "default",
+    return_dataloader: bool = True,
+    num_workers: int = 2,
+    batch_size: int = 256,
+    shuffle: bool = False
+) -> DataLoader | Dataset:
+    """
+    Constructs the dataset or dataloader.
+
+    Args:
+        transform_pipeline (str): 'default', 'aug', or other custom transformation pipelines
+        return_dataloader (bool): returnes either DataLoader or Dataset
+        num_workers (int): data workers
+        batch_size (int): batch size
+        shuffle (bool): True for Train, False for Validation
+    """
+    dataset = TumorDataset(dataset_path, transform_pipeline=transform_pipeline)
+
+    if not return_dataloader:
+        return dataset
+    
+    return DataLoader(
+        dataset,
+        num_workers=num_workers,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        drop_last=True
+    )
