@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .models import load_model, save_model
 from .dataloader import load_data
+from .metrics import AccuracyMetric
 
 def train(
     exp_dir: str = "logs",
@@ -60,16 +61,14 @@ def train(
                                   lr=lr,
                                   weight_decay=weight_decay)
     
-    # global logger metrics
+    # initialize global step
     global_step = 0
-    metrics = {"train_acc": [],
-                "val_acc": []}
     
     # training loop
     for epoch in range(num_epoch):
-        # clear metrics
-        for key in metrics:
-            metrics[key].clear()
+        # initialize metrics
+        train_acc_metric = AccuracyMetric()
+        val_acc_metric = AccuracyMetric()
 
         # set model to training
         model.train()
@@ -91,27 +90,31 @@ def train(
 
             # compute accuracy
             preds = torch.argmax(logits, dim=1)
-            acc = (preds == label).float().mean().item()
-            metrics["train_acc"].append(acc)
+            train_acc_metric.add(preds, label)
 
             global_step += 1
 
         # validation loop
+        model.eval()
         with torch.inference_mode():
-            model.eval()
 
             for img, label in val_data:
                 # send val data to device
                 img, label = img.to(device), label.to(device)
 
+                # predict on model
+                logits = model(img)
+                loss = loss_func(logits, label)
+
+                logger.add_scalar("val/loss", loss.item(), global_step=global_step)
+
                 # compute accuracy
-                preds = torch.argmax(model(img), dim=1)
-                acc = (preds == label).float().mean().item()
-                metrics["val_acc"].append(acc)
+                preds = torch.argmax(logits, dim=1)
+                val_acc_metric.add(preds, label)
 
         # calculate accuracies at epoch level
-        epoch_train_acc = torch.as_tensor(metrics["train_acc"]).mean()
-        epoch_val_acc = torch.as_tensor(metrics["val_acc"]).mean()
+        epoch_train_acc = train_acc_metric.compute()["accuracy"]
+        epoch_val_acc = val_acc_metric.compute()["accuracy"]
 
         # log accuracies
         logger.add_scalar("train/accuracy", epoch_train_acc, global_step=global_step)
