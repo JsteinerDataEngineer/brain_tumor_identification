@@ -3,3 +3,5 @@ notebooks
 data
 raw_data
 *.pyc
+logs
+*.th

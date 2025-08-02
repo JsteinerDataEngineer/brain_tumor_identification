@@ -1,4 +1,4 @@
-import torch, torchvision, argparse
+import torch, argparse #, torchvision
 
 import numpy as np
 import torch.utils.tensorboard as tb
@@ -131,7 +131,7 @@ def train(
 
     # save a copy of model weights in log
     torch.save(model.state_dict(), log_dir / f"{model_name}.th")
-    print(f"Model saved to {log_dir / f"{model_name}.th"}")
+    print(f"Model saved to {log_dir / f'{model_name}.th'}")
 
 
 # main loop
