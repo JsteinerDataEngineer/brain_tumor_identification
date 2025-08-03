@@ -98,6 +98,8 @@ def train(
         model.eval()
         with torch.inference_mode():
 
+            val_losses = []
+
             for img, label in val_data:
                 # send val data to device
                 img, label = img.to(device), label.to(device)
@@ -106,11 +108,15 @@ def train(
                 logits = model(img)
                 loss = loss_func(logits, label)
 
-                logger.add_scalar("val/loss", loss.item(), global_step=global_step)
+                val_losses.append(loss.item())
 
                 # compute accuracy
                 preds = torch.argmax(logits, dim=1)
                 val_acc_metric.add(preds, label)
+
+            # calculate average validation loss
+            avg_val_loss = sum(val_losses) / len(val_losses)
+            logger.add_scalar("val/loss", avg_val_loss, global_step=global_step)
 
         # calculate accuracies at epoch level
         epoch_train_acc = train_acc_metric.compute()["accuracy"]
