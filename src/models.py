@@ -14,8 +14,8 @@ class SimpleCNN(nn.Module):
         super().__init__()
 
         # CNN block
-        self.conv_block = nn.Sequential(                    # input: 3x128x128
-            nn.Conv2d(3, 16, kernel_size=3, padding=1),     # 16x128x128
+        self.conv_block = nn.Sequential(                    # input: 1x128x128
+            nn.Conv2d(1, 16, kernel_size=3, padding=1),     # 16x128x128
             nn.ReLU(),
             nn.MaxPool2d(2),                                # 16x64x64
 
@@ -87,15 +87,11 @@ class ComplexCNN(nn.Module):
             return self.skip(xi) + x
         
     def __init__(self,
-                 in_channels: int = 3,
-                 channels_l0: int = 64,
+                 in_channels: int = 1,
+                 channels_l0: int = 32,
                  n_blocks: int = 3,
                  num_classes: int = 6):
         super().__init__()
-
-        # normalization
-        self.register_buffer("input_mean", torch.as_tensor(INPUT_MEAN))
-        self.register_buffer("input_std", torch.as_tensor(INPUT_STD))
 
         cnn_layers = [
             nn.Conv2d(
@@ -120,9 +116,7 @@ class ComplexCNN(nn.Module):
         self.network = nn.Sequential(*cnn_layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        z = (x - self.input_mean[None, :, None, None]) / self.input_std[None, :, None, None]
-
-        return self.network(z).mean(dim=-1).mean(dim=-1)
+        return self.network(x).mean(dim=-1).mean(dim=-1)
     
     def predict(self, x: torch.Tensor) -> torch.Tensor:
         return self(x).argmax(dim=1)

@@ -11,9 +11,10 @@ LABEL_NAMES = ["glioma", "meningioma", "notumor", "pituitary"]
 
 # global size, image mean, image std
 SIZE = (128, 128)
-MEAN = [0.2788, 0.2657, 0.2629]
-STD = [0.2064, 0.1944, 0.2252]
-
+MEAN_3channel = [0.2788, 0.2657, 0.2629]
+STD_3channel = [0.2064, 0.1944, 0.2252]
+MEAN = [0.186]
+STD = [0.179]
 
 class TumorDataset(Dataset):
     """
@@ -41,10 +42,24 @@ class TumorDataset(Dataset):
     def get_transform(self, transform_pipeline: str = "default"):
         xform = None
 
-        if transform_pipeline == "default":
+        if transform_pipeline == "default" or transform_pipeline =="validation":
             xform = transforms.Compose([
+                transforms.Grayscale(num_output_channels=1),
                 transforms.Resize(SIZE),
-                transforms.ToTensor()
+                transforms.ToTensor(),
+                transforms.Normalize(mean=MEAN, std=STD)
+            ])
+
+        if transform_pipeline == "train":
+            xform = transforms.Compose([
+                transforms.Grayscale(num_output_channels=1),
+                transforms.RandomResizedCrop(size=128, scale=(0.8, 1.0), ratio=(0.9, 1.1)),
+                transforms.ColorJitter(brightness=0.2, contrast=0.2),
+                transforms.Resize(SIZE),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomRotation(degrees=15),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=MEAN, std=STD)
             ])
         
         if xform is None:

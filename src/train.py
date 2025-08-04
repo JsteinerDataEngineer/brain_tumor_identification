@@ -7,8 +7,13 @@ from datetime import datetime
 from pathlib import Path
 
 from .models import load_model, save_model
-from .dataloader import load_data
+from .dataloader import load_data, MEAN, STD
 from .metrics import AccuracyMetric
+
+def denormalize(tensor, mean, std):
+    mean = torch.tensor(mean).view(1, -1, 1, 1)
+    std = torch.tensor(std).view(1, -1, 1, 1)
+    return tensor * std + mean
 
 def train(
     exp_dir: str = "logs",
@@ -44,16 +49,19 @@ def train(
 
     # load data
     train_data = load_data("data/train",
-                           transform_pipeline="default",
+                           transform_pipeline="train",
                            shuffle=True,
                            batch_size=batch_size,
                            num_workers=4)
     val_data = load_data("data/val",
-                         transform_pipeline="default",
+                         transform_pipeline="validation",
                          shuffle=False)
     
-    logger.add_images("train_images", next(iter(train_data))[0])
-    logger.add_images("val_images", next(iter(val_data))[0])
+    train_images = denormalize(next(iter(train_data))[0], mean=MEAN, std=STD)
+    val_images = denormalize(next(iter(val_data))[0], mean=MEAN, std=STD)
+    
+    logger.add_images("train_images", train_images)
+    logger.add_images("val_images", val_images)
 
     # create loss function and optimizer
     loss_func = torch.nn.CrossEntropyLoss()
