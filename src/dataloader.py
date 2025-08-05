@@ -61,6 +61,26 @@ class TumorDataset(Dataset):
                 transforms.ToTensor(),
                 transforms.Normalize(mean=MEAN, std=STD)
             ])
+
+        if transform_pipeline == "pretrained_validation":
+            xform = transforms.Compose([
+                transforms.Grayscale(num_output_channels=3),
+                transforms.Resize(SIZE),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=MEAN_3channel, std=STD_3channel)
+            ])
+
+        if transform_pipeline == "pretrained_train":
+            xform = transforms.Compose([
+                transforms.Grayscale(num_output_channels=3),
+                transforms.RandomResizedCrop(size=128, scale=(0.8, 1.0), ratio=(0.9, 1.1)),
+                transforms.ColorJitter(brightness=0.2, contrast=0.2),
+                transforms.Resize(SIZE),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomRotation(degrees=15),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=MEAN_3channel, std=STD_3channel)
+            ])
         
         if xform is None:
             raise ValueError(f"Invalid transform {transform_pipeline} specified")

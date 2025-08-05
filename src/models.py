@@ -4,6 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from torchvision import models
+
 DIRECTORY = Path("src") / "saved_models"
 INPUT_MEAN = [0.2788, 0.2657, 0.2629]
 INPUT_STD = [0.2064, 0.1944, 0.2252]
@@ -120,11 +122,41 @@ class ComplexCNN(nn.Module):
     
     def predict(self, x: torch.Tensor) -> torch.Tensor:
         return self(x).argmax(dim=1)
+    
+
+class TransferResNet(nn.module):
+    def __init__(self, num_classes: int = 4):
+        super().__init__()
+        self.base_model = models.resnet18(pretrained=True)
+
+        # replace first conv layer to accept grayscale duplicated to 3 channels
+        self.base_model.conv1 = nn.Conv2d(
+            in_channels=3,
+            out_channels=64,
+            kernel_size=7,
+            stride=2,
+            padding=3,
+            bias=False
+        )
+
+        # freeze base model layers
+        for param in self.base_model.parameters():
+            param.requires_grad = False
+
+        # replace classifier head
+        self.base_model.fc = nn.Linear(
+            in_features=self.base_model.fc.in_features,
+            out_features=num_classes
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.base_model(x)
 
 
 MODEL_FACTORY = {
     "simpleCNN": SimpleCNN,
-    "complexCNN": ComplexCNN
+    "complexCNN": ComplexCNN,
+    "transferResNet": TransferResNet
 }
 
 

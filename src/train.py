@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .models import load_model, save_model
-from .dataloader import load_data, MEAN, STD
+from .dataloader import load_data, MEAN, STD, MEAN_3channel, STD_3channel
 from .metrics import AccuracyMetric
 
 def denormalize(tensor, mean, std):
@@ -17,7 +17,7 @@ def denormalize(tensor, mean, std):
 
 def train(
     exp_dir: str = "logs",
-    model_name: str = "CNN",
+    model_name: str = "simpleCNN",
     num_epoch: int = 50,
     lr: float = 1e-3,
     weight_decay: float = 1e-3,
@@ -47,18 +47,30 @@ def train(
     model = model.to(device)
     model.train()
 
+    # select train and validation pipelines
+    if model_name == "transferResNet":
+        train_transform = "pretrained_train"
+        val_transform = "pretrained_validation"
+        mean_val = MEAN_3channel
+        std_val = STD_3channel
+    else:
+        train_transform = "train"
+        val_transform = "validation"
+        mean_val = MEAN
+        std_val = STD
+
     # load data
     train_data = load_data("data/train",
-                           transform_pipeline="train",
+                           transform_pipeline=train_transform,
                            shuffle=True,
                            batch_size=batch_size,
                            num_workers=4)
     val_data = load_data("data/val",
-                         transform_pipeline="validation",
+                         transform_pipeline=val_transform,
                          shuffle=False)
     
-    train_images = denormalize(next(iter(train_data))[0], mean=MEAN, std=STD)
-    val_images = denormalize(next(iter(val_data))[0], mean=MEAN, std=STD)
+    train_images = denormalize(next(iter(train_data))[0], mean=mean_val, std=std_val)
+    val_images = denormalize(next(iter(val_data))[0], mean=mean_val, std=std_val)
     
     logger.add_images("train_images", train_images)
     logger.add_images("val_images", val_images)
