@@ -11,10 +11,11 @@ LABEL_NAMES = ["glioma", "meningioma", "notumor", "pituitary"]
 
 # global size, image mean, image std
 SIZE = (128, 128)
-MEAN_3channel = [0.2788, 0.2657, 0.2629]
-STD_3channel = [0.2064, 0.1944, 0.2252]
 MEAN = [0.186]
 STD = [0.179]
+RESNET_SIZE = (224, 224)
+IMAGENET_MEAN = [0.485, 0.456, 0.406]
+IMAGENET_STD = [0.229, 0.224, 0.225]
 
 class TumorDataset(Dataset):
     """
@@ -65,9 +66,9 @@ class TumorDataset(Dataset):
         if transform_pipeline == "pretrained_validation":
             xform = transforms.Compose([
                 transforms.Grayscale(num_output_channels=3),
-                transforms.Resize(SIZE),
+                transforms.Resize(RESNET_SIZE),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=MEAN_3channel, std=STD_3channel)
+                transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
             ])
 
         if transform_pipeline == "pretrained_train":
@@ -75,11 +76,11 @@ class TumorDataset(Dataset):
                 transforms.Grayscale(num_output_channels=3),
                 transforms.RandomResizedCrop(size=128, scale=(0.8, 1.0), ratio=(0.9, 1.1)),
                 transforms.ColorJitter(brightness=0.2, contrast=0.2),
-                transforms.Resize(SIZE),
+                transforms.Resize(RESNET_SIZE),
                 transforms.RandomHorizontalFlip(),
                 transforms.RandomRotation(degrees=15),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=MEAN_3channel, std=STD_3channel)
+                transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
             ])
         
         if xform is None:

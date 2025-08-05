@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from torchvision import models
+from torchvision.models import ResNet18_Weights, MobileNet_V2_Weights
 
 DIRECTORY = Path("src") / "saved_models"
 INPUT_MEAN = [0.2788, 0.2657, 0.2629]
@@ -124,10 +125,10 @@ class ComplexCNN(nn.Module):
         return self(x).argmax(dim=1)
     
 
-class TransferResNet(nn.module):
+class TransferResNet(nn.Module):
     def __init__(self, num_classes: int = 4):
         super().__init__()
-        self.base_model = models.resnet18(pretrained=True)
+        self.base_model = models.resnet18(weights=ResNet18_Weights.DEFAULT)
 
         # replace first conv layer to accept grayscale duplicated to 3 channels
         self.base_model.conv1 = nn.Conv2d(
@@ -140,8 +141,11 @@ class TransferResNet(nn.module):
         )
 
         # freeze base model layers
-        for param in self.base_model.parameters():
-            param.requires_grad = False
+        for name, param in self.base_model.named_parameters():
+            if "layer4" in name or "fc" in name:
+                param.requires_grad = True
+            else:
+                param.requires_grad = False
 
         # replace classifier head
         self.base_model.fc = nn.Linear(
@@ -151,12 +155,38 @@ class TransferResNet(nn.module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.base_model(x)
+    
+
+class TransferModileNetV2(nn.Module):
+    def __init__(self, num_classes: int = 4):
+        super().__init__()
+        self.base_model = models.mobilenet_v2(weights=MobileNet_V2_Weights.DEFAULT)
+
+        # freeze all layers
+        for name, param in self.base_model.features.named_parameters():
+            if not (name.startswith("17") or name.startswith("18")):
+                param.requires_grad = False
+            else:
+                param.requires_grad = True
+
+        # replace classifier head
+        self.base_model.classifier = nn.Sequential(
+            nn.Dropout(p=0.4),
+            nn.Linear(
+                in_features=self.base_model.last_channel,
+                out_features=num_classes
+            ))
+        
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.base_model(x)
+
 
 
 MODEL_FACTORY = {
     "simpleCNN": SimpleCNN,
     "complexCNN": ComplexCNN,
-    "transferResNet": TransferResNet
+    "transferResNet": TransferResNet,
+    "transferMobileNet": TransferModileNetV2
 }
 
 

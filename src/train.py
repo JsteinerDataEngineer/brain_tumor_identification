@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .models import load_model, save_model
-from .dataloader import load_data, MEAN, STD, MEAN_3channel, STD_3channel
+from .dataloader import load_data, MEAN, STD, IMAGENET_MEAN, IMAGENET_STD
 from .metrics import AccuracyMetric
 
 def denormalize(tensor, mean, std):
@@ -48,11 +48,11 @@ def train(
     model.train()
 
     # select train and validation pipelines
-    if model_name == "transferResNet":
+    if model_name == "transferResNet" or model_name == "transferMobileNet":
         train_transform = "pretrained_train"
         val_transform = "pretrained_validation"
-        mean_val = MEAN_3channel
-        std_val = STD_3channel
+        mean_val = IMAGENET_MEAN
+        std_val = IMAGENET_STD
     else:
         train_transform = "train"
         val_transform = "validation"
