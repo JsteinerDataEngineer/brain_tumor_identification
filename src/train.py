@@ -48,7 +48,7 @@ def train(
     model.train()
 
     # select train and validation pipelines
-    if model_name == "transferResNet" or model_name == "transferMobileNet":
+    if model_name == "transferResNet" or model_name == "transferMobileNet" or model_name == "transferResNetLarge":
         train_transform = "pretrained_train"
         val_transform = "pretrained_validation"
         mean_val = IMAGENET_MEAN
