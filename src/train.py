@@ -5,6 +5,7 @@ import torch.utils.tensorboard as tb
 
 from datetime import datetime
 from pathlib import Path
+from torch.optim.lr_scheduler import CosineAnnealingLR
 
 from .models import load_model, save_model
 from .dataloader import load_data, MEAN, STD, IMAGENET_MEAN, IMAGENET_STD
@@ -22,6 +23,7 @@ def train(
     lr: float = 1e-3,
     weight_decay: float = 1e-3,
     batch_size: int = 256,
+    scheduler: bool = False,
     seed: int = 2024,
     **kwargs
 ):
@@ -81,6 +83,11 @@ def train(
                                   lr=lr,
                                   weight_decay=weight_decay)
     
+    # use learning rate scheduler if true
+    if scheduler:
+        scheduler = CosineAnnealingLR(optimizer, T_max=num_epoch)
+
+
     # initialize global step
     global_step = 0
     
@@ -146,6 +153,11 @@ def train(
         logger.add_scalar("train/accuracy", epoch_train_acc, global_step=global_step)
         logger.add_scalar("val/accuracy", epoch_val_acc, global_step=global_step)
 
+        # log scheduler if true
+        if scheduler:
+            logger.add_scalar("lr", scheduler.get_last_lr()[0], global_step=global_step)
+            scheduler.step()
+
         # print first, last, or every 5th epoch
         if epoch == 0 or epoch == num_epoch - 1 or (epoch + 1) % 5 == 0:
             print(
@@ -173,6 +185,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_epoch", type=int, default=50)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--weight_decay", type=float, default=1e-3)
+    parser.add_argument("--scheduler", type=bool, default=False)
     parser.add_argument("--seed", type=int, default=2024)
     parser.add_argument("--batch_size", type=int, default=256)
 
