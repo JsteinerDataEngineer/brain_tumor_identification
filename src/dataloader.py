@@ -74,12 +74,14 @@ class TumorDataset(Dataset):
         if transform_pipeline == "pretrained_train":
             xform = transforms.Compose([
                 transforms.Grayscale(num_output_channels=3),
-                transforms.RandomResizedCrop(size=128, scale=(0.8, 1.0), ratio=(0.9, 1.1)),
-                transforms.ColorJitter(brightness=0.2, contrast=0.2),
-                transforms.Resize(RESNET_SIZE),
+                transforms.RandomResizedCrop(size=224, scale=(0.8, 1.0), ratio=(0.9, 1.1)),
                 transforms.RandomHorizontalFlip(),
-                transforms.RandomRotation(degrees=15),
+                transforms.RandomRotation(degrees=20),
+                transforms.RandomAffine(degrees=15, translate=(0.1, 0.1), scale=(0.9, 1.1)),
+                transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.2, hue=0.05),
+                transforms.RandomPerspective(distortion_scale=0.2, p=0.5),
                 transforms.ToTensor(),
+                transforms.RandomErasing(p=0.25),
                 transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
             ])
         

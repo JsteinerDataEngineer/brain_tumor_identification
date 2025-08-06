@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from torchvision import models
-from torchvision.models import ResNet18_Weights, MobileNet_V2_Weights
+from torchvision.models import ResNet18_Weights, MobileNet_V2_Weights, ResNet50_Weights
 
 DIRECTORY = Path("src") / "saved_models"
 INPUT_MEAN = [0.2788, 0.2657, 0.2629]
@@ -179,6 +179,29 @@ class TransferModileNetV2(nn.Module):
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.base_model(x)
+    
+
+class TransferResNetLarge(nn.Module):
+    def __init__(self, num_classes: int = 4):
+        super().__init__()
+        self.base_model = models.resnet50(weights=ResNet50_Weights.DEFAULT)
+
+        # freeze all but last layers
+        for name, param in self.base_model.named_parameters():
+            if "layer4" in name or "fc" in name:
+                param.requires_grad = True
+            else:
+                param.requires_grad = False
+
+        # replace classifier head
+        self.base_model.fc = nn.Linear(
+            in_features=self.base_model.fc.in_features,
+            out_features=num_classes
+        )
+
+    def forward(self, x):
+        return self.base_model(x)
+
 
 
 
@@ -186,7 +209,8 @@ MODEL_FACTORY = {
     "simpleCNN": SimpleCNN,
     "complexCNN": ComplexCNN,
     "transferResNet": TransferResNet,
-    "transferMobileNet": TransferModileNetV2
+    "transferMobileNet": TransferModileNetV2,
+    "transferResNetLarge": TransferResNetLarge
 }
 
 
