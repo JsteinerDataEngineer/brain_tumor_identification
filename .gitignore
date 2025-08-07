@@ -4,4 +4,4 @@ data
 raw_data
 *.pyc
 logs
-*.th
+saved_models
