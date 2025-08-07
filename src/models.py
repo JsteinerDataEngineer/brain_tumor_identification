@@ -44,6 +44,7 @@ class SimpleCNN(nn.Module):
         x = self.conv_block(x)
         x = self.classifier(x)
         return x
+    
 
 class ComplexCNN(nn.Module):
     class Block(nn.Module):
@@ -201,8 +202,6 @@ class TransferResNetLarge(nn.Module):
 
     def forward(self, x):
         return self.base_model(x)
-
-
 
 
 MODEL_FACTORY = {
