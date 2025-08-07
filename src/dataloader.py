@@ -43,6 +43,11 @@ class TumorDataset(Dataset):
     def get_transform(self, transform_pipeline: str = "default"):
         xform = None
 
+        if transform_pipeline == "raw":
+            xform = transforms.Compose([
+                transforms.ToTensor()
+            ])
+
         if transform_pipeline == "default" or transform_pipeline =="validation":
             xform = transforms.Compose([
                 transforms.Grayscale(num_output_channels=1),
