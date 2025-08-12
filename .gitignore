@@ -6,4 +6,3 @@ raw_data
 *.pyc
 logs
 saved_models
-app
