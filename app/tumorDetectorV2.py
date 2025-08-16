@@ -16,6 +16,8 @@ from scipy.ndimage import gaussian_filter
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
+import sv_ttk
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -156,9 +158,15 @@ def predict(model, pil_image: Image.Image):
 class TumorApp(tk.Tk):
     def __init__(self):
         super().__init__()
+        sv_ttk.set_theme("dark")
         self.title("Brain MRI Tumor Detector")
         self.geometry("980x640")
         self.resizable(True, True)
+
+        try:
+            self.iconbitmap("assets/app_icon.ico")
+        except Exception:
+            pass
 
         # model
         try:
@@ -181,28 +189,55 @@ class TumorApp(tk.Tk):
         self.bind("<Configure>", self._on_resize)
 
     def _build_ui(self):
-        top = ttk.Frame(self, padding=10)
-        top.pack(fill=tk.X)
+        # window grid
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)
+        self.rowconfigure(2, weight=0)
 
-        self.btn_open = ttk.Button(top, text="Open Image", command=self.on_open)
-        self.btn_open.pack(side=tk.LEFT)
+        # toolbar
+        bar = ttk.Frame(self, padding=(10, 8))
+        bar.grid(row=0, column=0, sticky="ew")
+        bar.columnconfigure(10, weight=1)
 
-        self.status = ttk.Label(top, text="Choose an image (.jpg/.png)")
-        self.status.pack(side=tk.LEFT, padx=12)
+        open_btn = ttk.Button(bar, text="📂 Open", command=self.on_open)
+        open_btn.grid(row=0, column=0, padx=(0, 8))
 
-        # image panes
-        mid = ttk.Frame(self, padding=10)
-        mid.pack(fill=tk.BOTH, expand=True)
+        save_btn = ttk.Button(bar, text="💾 Save Grad-CAM", command=self.on_save_cam)
+        save_btn.grid(row=0, column=1, padx=(0, 8))
+
+        theme_btn = ttk.Button(bar, text="🌓 Toggle Theme", command=self.toggle_theme)
+        theme_btn.grid(row=0, column=2, padx=(0, 8))
+
+        about_btn = ttk.Button(bar, text="❓ About", command=self.show_about)
+        about_btn.grid(row=0, column=3)
+
+        self.status = ttk.Label(bar, text="Ready")
+        self.status.grid(row=0, column=10, sticky="e")
+
+        # shortcut
+        self.bind_all("<Control-o>", lambda e: self.on_open())
+
+        # middle - two equal columns
+        mid = ttk.Frame(self, padding=(12, 10))
+        mid.grid(row=1, column=0, sticky="nsew")
+        mid.columnconfigure(0, weight=1, uniform="cols")
+        mid.columnconfigure(1, weight=1, uniform="cols")
+        mid.rowconfigure(0, weight=1)
 
         self.left_panel = ttk.LabelFrame(mid, text="Original")
-        self.left_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
+        self.left_panel.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
         self.left_img = ttk.Label(self.left_panel, anchor="center")
         self.left_img.pack(fill=tk.BOTH, expand=True)
 
         self.right_panel = ttk.LabelFrame(mid, text="Grad-CAM")
-        self.right_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0))
+        self.right_panel.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
         self.right_img = ttk.Label(self.right_panel, anchor="center")
         self.right_img.pack(fill=tk.BOTH, expand=True)
+
+        # status bar - bottom
+        self.statusbar = ttk.Label(self, anchor="w", padding=(12, 6))
+        self.statusbar.grid(row=2, column=0, sticky="ew")
+        self.set_status("Ready")
 
     def on_open(self):
         path = filedialog.askopenfilename(
@@ -226,12 +261,12 @@ class TumorApp(tk.Tk):
             return
 
         if pred_label == "notumor":
-            self.status.configure(text="No tumor detected.")
+            self.set_status("No tumor detected.")
             self.right_panel.configure(text="Grad-CAM (n/a)")
             self.right_pil = None
             self.left_pil = pil_img
         else:
-            self.status.configure(text="Tumor detected.")
+            self.set_status("Tumor detected.")
             self.right_panel.configure(text="Grad-CAM")
             try:
                 buf = io.BytesIO()
@@ -253,6 +288,41 @@ class TumorApp(tk.Tk):
 
         self._render_panels()
 
+    def on_save_cam(self):
+        if self.right_pil is None:
+            messagebox.showinfo("Save Grad-CAM", "No Grad-CAM image to save yet.")
+            return
+        path = filedialog.asksaveasfilename(
+            title="Save Grad-CAM",
+            defaultextension=".png",
+            filetypes=[("PNG", "*.png")]
+        )
+        if not path:
+            return
+        try:
+            self.right_pil.save(path, format="PNG")
+            self.set_status(f"Saved Grad-CAM -> {path}")
+        except Exception as e:
+            messagebox.showerror("Save Error", str(e))
+
+    def toggle_theme(self):
+        current = sv_ttk.get_theme()
+        sv_ttk.set_theme("light" if current == "dark" else "dark")
+        self._render_panels()
+
+    def show_about(self):
+        messagebox.showinfo(
+            "About",
+            "Brain MRI Tumor Detector\n\n"
+            "- Upload an MRI image.\n"
+            "- If no tumor: shows the image and a message.\n"
+            "- If tumor: shows the image and a Grad-CAM overlay.\n\n"
+            "No tumor subtype is disclosed."
+        )
+
+    def set_status(self, text: str):
+        self.statusbar.configure(text=text)
+
     def _on_resize(self, _event=None):
         if self._resize_job is not None:
             try:
@@ -260,7 +330,6 @@ class TumorApp(tk.Tk):
             except Exception:
                 pass
         self._resize_job = self.after(60, self._render_panels)
-
 
     def _resize_to_fit(self, pil_img: Image.Image, target_w: int, target_h: int) -> Image.Image:
         """

@@ -7,3 +7,7 @@ raw_data
 logs
 saved_models
 debugfile.py
+build
+dist
+app/assets
+TumorDetector.spec
